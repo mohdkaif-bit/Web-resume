@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Resume NER Extractor</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>📄 Resume NER Extractor</h1>
+        <p class="subtext">Upload your resume (PDF or DOCX) and extract entities using your custom ML model</p>
+        <form action="/" method="post" enctype="multipart/form-data" class="upload-form">
+            <input type="file" name="file" class="file-input" required>
+            <button type="submit">🔍 Extract Entities</button>
+        </form>
+
+        {% if result == "❌ Unsupported file type" %}
+            <div class="results">
+                <p class="error">{{ result }}</p>
+            </div>
+        {% elif result or grouped_entities or regex_results %}
+            <div class="results">
+                <h2>🧠 Extracted Information</h2>
+                
+                <!-- Contact Information -->
+                {% if regex_results %}
+                <div class="section">
+                    <h3>📇 Contact Information</h3>
+                    <div class="contact-grid">
+                        {% if regex_results.linkedin %}
+                        <div class="contact-item">
+                            <span class="contact-label">LinkedIn:</span>
+                            {% for profile in regex_results.linkedin %}
+                            <a href="{{ profile }}" target="_blank">{{ profile }}</a>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        {% if regex_results.email %}
+                        <div class="contact-item">
+                            <span class="contact-label">Email:</span>
+                            {% for email in regex_results.email %}
+                            <span>{{ email }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        {% if regex_results.phone %}
+                        <div class="contact-item">
+                            <span class="contact-label">Phone:</span>
+                            {% for phone in regex_results.phone %}
+                            <span>{{ phone }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Personal Information -->
+                {% if grouped_entities.personal_info %}
+                <div class="section">
+                    <h3>👤 Personal Information</h3>
+                    <div class="info-grid">
+                        {% for item in grouped_entities.personal_info %}
+                        <div class="info-item">
+                            <span class="info-label">{{ item.label|title }}:</span>
+                            <span>{{ item.text }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Technical Skills -->
+                {% if grouped_entities.tech_stack %}
+                <div class="section">
+                    <h3>💻 Technical Skills</h3>
+                    <div class="skills-container">
+                        {% for item in grouped_entities.tech_stack %}
+                        <span class="skill-tag">{{ item.text }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Education -->
+                {% if grouped_entities.education %}
+                <div class="section">
+                    <h3>🎓 Education</h3>
+                    <div class="education-container">
+                        {% set institute = namespace(value='') %}
+                        {% set degree = namespace(value='') %}
+                        {% set grad_year = namespace(value='') %}
+                        
+                        {% for item in grouped_entities.education %}
+                            {% if item.label == "INSTITUTE" %}
+                                {% set institute.value = item.text %}
+                            {% elif item.label == "DEGREE" %}
+                                {% set degree.value = item.text %}
+                            {% elif item.label == "GRAD_YEAR" %}
+                                {% set grad_year.value = item.text %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        <div class="education-item">
+                            {% if institute.value %}
+                            <div class="education-field">
+                                <span class="education-label">Institute:</span>
+                                <span>{{ institute.value }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if degree.value %}
+                            <div class="education-field">
+                                <span class="education-label">Degree:</span>
+                                <span>{{ degree.value }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if grad_year.value %}
+                            <div class="education-field">
+                                <span class="education-label">Graduation Year:</span>
+                                <span>{{ grad_year.value }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Experience -->
+                {% if grouped_entities.experience %}
+                <div class="section">
+                    <h3>💼 Work Experience</h3>
+                    <div class="experience-container">
+                        {% set company = namespace(value='') %}
+                        {% set designation = namespace(value='') %}
+                        
+                        {% for item in grouped_entities.experience %}
+                            {% if item.label == "COMPANY" %}
+                                {% set company.value = item.text %}
+                            {% elif item.label == "DESIGNATION" %}
+                                {% set designation.value = item.text %}
+                            {% endif %}
+                            
+                            {% if company.value and designation.value %}
+                                <div class="experience-item">
+                                    <div class="experience-field">
+                                        <span class="experience-label">Company:</span>
+                                        <span>{{ company.value }}</span>
+                                    </div>
+                                    <div class="experience-field">
+                                        <span class="experience-label">Position:</span>
+                                        <span>{{ designation.value }}</span>
+                                    </div>
+                                </div>
+                                {% set company.value = '' %}
+                                {% set designation.value = '' %}
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Raw Entities (original display) -->
+                {% if result and not (grouped_entities or regex_results) %}
+                    <h3>🔍 Raw Entities</h3>
+                    {% for ent in result %}
+                        <div class="entity-box">
+                            <span class="label">{{ ent.label }}:</span> {{ ent.text }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>
